@@ -8,9 +8,11 @@ import java.awt.Image;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import javax.swing.JFrame;
 
@@ -25,12 +27,19 @@ public class CTT extends JFrame {
 	private float centreLineWidth;
 	private float referenceLineWidth;
 	//private float lambda;
-	private int targetLinePosition = 200;
+	private float targetLinePosition = 200;
 	private float[] dash = new float[] {50};
-	private int updown;
+	private float updown;
+	private boolean isStarted;
 	
 	private Image img;
 	private Graphics img_g;
+	
+	private TimerThread timerThread;
+	private long timerStartTime;
+	
+	private File saveFile;
+	private BufferedWriter bufferedWriter;
 	
 	public CTT(String filename) {
 		super("Life Enhancing Technology Lab. - Critical Tracking Task");
@@ -63,7 +72,22 @@ public class CTT extends JFrame {
 		
 		screenWidth = super.getWidth();
 		screenHeight = super.getHeight();
-		updown = 1;
+		isStarted = false;
+		updown = 0;
+		timerThread = new TimerThread();
+		
+		saveFile = new File("SaveFile.csv");
+		try {
+			if(saveFile.exists() == false) 
+				saveFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		try {
+			bufferedWriter = new BufferedWriter(new FileWriter(saveFile, true));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void paint(Graphics g) {
@@ -86,7 +110,7 @@ public class CTT extends JFrame {
 		
 		g2.setColor(Color.BLACK);
 		g2.setStroke(new BasicStroke(targetLineWidth));
-		g2.drawLine((screenWidth-targetLineLength)/2, targetLinePosition, (screenWidth-targetLineLength)/2+targetLineLength, targetLinePosition);
+		g2.drawLine((screenWidth-targetLineLength)/2, (int)targetLinePosition, (screenWidth-targetLineLength)/2+targetLineLength, (int)targetLinePosition);
 
 		g.drawImage(img, 0, 0, null);
 	
@@ -94,20 +118,26 @@ public class CTT extends JFrame {
 	}
 	
 	public void calculateTargetLinePosition() {
-		targetLinePosition =  targetLinePosition + updown;
+		targetLinePosition = targetLinePosition + updown;
 	}
 	
 	class MyKeyListener implements KeyListener {
 		@Override
 		public void keyPressed(KeyEvent e) {
+			if (!isStarted) {
+				timerStartTime = System.currentTimeMillis();
+				timerThread.start();
+				isStarted = true;
+			}
 			if (e.getKeyCode() == 38) {
-				updown = -1;
+				updown = (float)-1.5;
 			}
 			else if (e.getKeyCode() == 40) {
-				updown = +1;
+				updown = (float)1.5;
 			}
-			else if (e.getKeyCode() == 0) {
-				
+			else if (e.getKeyCode() == 27) {
+				timerThread.interrupt();
+				System.exit(0);
 			}
 			repaint();
 		}
@@ -119,7 +149,34 @@ public class CTT extends JFrame {
 
 		@Override
 		public void keyReleased(KeyEvent e) {
-
+			//updown = 0;
+			//repaint();
+		}
+	}
+	
+	class TimerThread extends Thread {
+		public void run() {
+			while (true) {
+				if(Thread.interrupted()) {
+					try {
+						bufferedWriter.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+					break;
+				}
+				long timerTime = System.currentTimeMillis();
+				if (timerTime - timerStartTime >= 50) {
+					try {
+						bufferedWriter.write(timerTime - timerStartTime + ", " + targetLinePosition);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					timerStartTime = System.currentTimeMillis(); 
+				}
+			}
 		}
 	}
 	
