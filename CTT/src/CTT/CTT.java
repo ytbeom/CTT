@@ -16,6 +16,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import javax.swing.JFrame;
 
+import net.java.games.input.Component;
+import net.java.games.input.Controller;
+import net.java.games.input.ControllerEnvironment;
+
 
 public class CTT extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -34,6 +38,10 @@ public class CTT extends JFrame {
 	
 	private Image img;
 	private Graphics img_g;
+	
+	private Controller targetController;
+	private Component[] components;
+	private ControllerListenerThread controllerListenerThread;
 	
 	private TimerThread timerThread;
 	private long timerStartTime;
@@ -88,6 +96,16 @@ public class CTT extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		Controller[] controllers = ControllerEnvironment.getDefaultEnvironment().getControllers();
+		
+		for(Controller controller : controllers) {
+			if (controller.getType() == Controller.Type.GAMEPAD)
+				targetController = controller;
+		}
+		components = targetController.getComponents();
+		
+		controllerListenerThread = new ControllerListenerThread();
 	}
 	
 	public void paint(Graphics g) {
@@ -127,6 +145,7 @@ public class CTT extends JFrame {
 			if (!isStarted) {
 				timerStartTime = System.currentTimeMillis();
 				timerThread.start();
+				//controllerListenerThread.start();
 				isStarted = true;
 			}
 			if (e.getKeyCode() == 38) {
@@ -176,6 +195,21 @@ public class CTT extends JFrame {
 					}
 					timerStartTime = System.currentTimeMillis(); 
 				}
+			}
+		}
+	}
+	
+	class ControllerListenerThread extends Thread {
+		public void run() {
+			while (true) {
+				try {
+					Thread.sleep(40);
+				} catch (Exception e) {}
+				targetController.poll();
+				for (Component component : components) {
+					System.out.print(component.getPollData()+", ");
+				}
+				System.out.println();
 			}
 		}
 	}
