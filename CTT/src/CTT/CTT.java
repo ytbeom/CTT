@@ -1,12 +1,17 @@
 package CTT;
 
 import java.awt.BasicStroke;
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,10 +19,17 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Random;
 
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
 
 //import net.java.games.input.Component;
 //import net.java.games.input.Controller;
@@ -46,6 +58,8 @@ public class CTT extends JFrame {
 	private float sensitivity;
 	private int delta;
 	private int deviceInput;
+	
+	private String participantName;
 	
 	private Image img;
 	private Graphics img_g;
@@ -76,6 +90,9 @@ public class CTT extends JFrame {
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.addKeyListener(new MyKeyListener());
 		this.setFocusable(true);
+		
+		SettingDialog dialog = new SettingDialog(this);
+		dialog.setVisible(true);
 		
 		int screenWidth = super.getWidth();
 		int screenHeight = super.getHeight();
@@ -169,6 +186,68 @@ public class CTT extends JFrame {
 		
 		controllerListenerThread = new ControllerListenerThread();
 		*/
+	}
+	
+	class SettingDialog extends JDialog {
+		private static final long serialVersionUID = 1L;
+		
+		private int width = 500;
+		private int height = 150;
+		private JLabel participantNameLabel = new JLabel("Participant Name: ", JLabel.CENTER);
+		private JTextField participantNameTextField = new JTextField(10);
+		private JButton okButton = new JButton("OK");
+		private URL lineImageURL = SettingDialog.class.getClassLoader().getResource("Line.png");
+		private ImageIcon lineImageIcon = new ImageIcon(lineImageURL);
+		private Image lineImage = lineImageIcon.getImage().getScaledInstance(width-40, 15, java.awt.Image.SCALE_SMOOTH);
+		private JLabel lineImageBox = new JLabel(new ImageIcon(lineImage));
+		private URL logoImageURL = SettingDialog.class.getClassLoader().getResource("Logo.png");
+		private ImageIcon logoImageIcon = new ImageIcon(logoImageURL);
+		private Image logoImage = logoImageIcon.getImage().getScaledInstance(width/2, width/2*logoImageIcon.getIconHeight()/logoImageIcon.getIconWidth(), java.awt.Image.SCALE_SMOOTH);
+		private JLabel logoImageBox = new JLabel(new ImageIcon(logoImage));
+		
+		public SettingDialog(JFrame frame) {
+			super(frame, "SuRT Setting Dialog", true);
+			setLayout(new FlowLayout());
+			setSize(width, height);
+			setLocation((CTT.super.getWidth()-width)/2, (CTT.super.getHeight()-height)/2);
+			this.setFocusable(true);
+			
+			add(participantNameLabel, BorderLayout.CENTER);
+			add(participantNameTextField);
+			add(okButton);
+			add(lineImageBox);
+			add(logoImageBox);
+			
+			okButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					SaveDialogResult();
+				}
+			});
+			
+			KeyListener enterListener = new KeyListener() {
+				public void keyPressed(KeyEvent e) {
+					if (e.getKeyCode() == 10)
+						SaveDialogResult();
+				}
+				
+				@Override
+				public void keyTyped(KeyEvent e) {}
+
+				@Override
+				public void keyReleased(KeyEvent e) {}
+			};
+			
+			this.addKeyListener(enterListener);
+			participantNameTextField.addKeyListener(enterListener);
+		}
+		
+		public void SaveDialogResult() {
+			participantName = participantNameTextField.getText();
+			if (participantName.equals(""))
+				participantName = "NONAME";
+			
+			this.setVisible(false);
+		}
 	}
 	
 	public void paint(Graphics g) {
