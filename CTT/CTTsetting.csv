@@ -1,1 +1,2 @@
-10,500,10,10,4
+"Mode (1: Horizontal, 0: Vertical)",Instability,Sensitivity,Delta t,Center Line Width,Target Line Width,Reference Line Width,Target Line Length (Ratio),Reference Line Length (Ratio),Reference Line X-axis Position (Ratio),Reference Line Y-axis Position (Ratio),Dash 1,Dash 2
+0,0.0005,20,100,20,5,10,1,0.1,0.25,0.5,50,20

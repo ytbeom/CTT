@@ -43,7 +43,9 @@ public class CTT extends JFrame {
 	private int mode;
 	private int screenSize;
 	private int[] screenOffset = new int[] {0,0};
-	private float lineWidth;
+	private float centerLineWidth;
+	private float targetLineWidth;
+	private float referenceLineWidth;
 	private int[] centerLinePosition = new int[] {0,0};
 	private int[] centerLineLength = new int[] {0,0};
 	private int[] targetLineLength = new int[] {0,0};
@@ -52,7 +54,7 @@ public class CTT extends JFrame {
 	private int[] referenceLineLength = new int[] {0,0};
 	private int[] upperReferenceLinePosition = new int[] {0,0};
 	private int[] lowerReferenceLinePosition = new int[] {0,0};
-	private float[] dash = new float[] {50};
+	private float[] dash = new float[] {50, 50};
 	
 	private float instability;
 	private float sensitivity;
@@ -70,8 +72,6 @@ public class CTT extends JFrame {
 	
 	private TimerThread timerThread;
 	private long timerStartTime;
-	
-	private File saveFile;
 	private BufferedWriter bufferedWriter;
 	
 	private SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
@@ -81,7 +81,7 @@ public class CTT extends JFrame {
 	private double meanSquaredDeviation;
 	
 	
-	public CTT(String filename) {
+	public CTT(String inputFileName) {
 		super("Life Enhancing Technology Lab. - Critical Tracking Task");
 		
 		this.setUndecorated(true);
@@ -112,41 +112,75 @@ public class CTT extends JFrame {
 		lowerReferenceLinePosition[1] = screenOffset[1];
 		
 		try {
-			File file = new File(filename);
-			BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
-			String line = "";
+			File inputFile = new File(inputFileName);
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile));
 			
-			if((line = bufferedReader.readLine()) != null) {
-				line = bufferedReader.readLine();
-				String array[] = line.split(",");
-				mode = Integer.parseInt(array[0]);
-				instability = Float.parseFloat(array[1]);
-				sensitivity = Float.parseFloat(array[2]);
-				delta = Integer.parseInt(array[3]);
-				lineWidth = Float.parseFloat(array[4]);
-				centerLinePosition[mode] += screenSize/2;
-				centerLineLength[(mode+1)%2] = screenSize;
-				targetLineLength[(mode+1)%2] = (int)(screenSize/2*Float.parseFloat(array[5]));
-				referenceLineLength[(mode+1)%2] = (int)(screenSize/2*Float.parseFloat(array[6]));
-				upperReferenceLinePosition[0] += (int)(screenSize/2*Float.parseFloat(array[7]));
-				upperReferenceLinePosition[1] += (int)(screenSize/2*Float.parseFloat(array[8]));
-				if (mode == 1) {
-					lowerReferenceLinePosition[0] += (int)(screenSize/2*Float.parseFloat(array[7]));
-					lowerReferenceLinePosition[1] += (screenSize - (int)(screenSize/2*Float.parseFloat(array[8])));
-				}
-				else {
-					lowerReferenceLinePosition[0] += (screenSize - (int)(screenSize/2*Float.parseFloat(array[7])));
-					lowerReferenceLinePosition[1] += (int)(screenSize/2*Float.parseFloat(array[8]));
-				
-				}
+			String outputFileName = participantName+".csv";
+			File outputFile = new File(outputFileName);
+			if(outputFile.exists() == false) 
+				outputFile.createNewFile();
+			bufferedWriter = new BufferedWriter(new FileWriter(outputFile, true));
+			
+			// Column Header 저장
+			String line = bufferedReader.readLine();
+			String columnHeaderArray[] = line.split(",");
+			bufferedWriter.write("Experiment start time" + ",");
+			for (int i=0; i<columnHeaderArray.length; i++)
+				bufferedWriter.write(columnHeaderArray[i] + ",");
+			bufferedWriter.newLine();
+			bufferedWriter.flush();
+			
+			// Parameter Value 저장
+			line = bufferedReader.readLine();
+			String array[] = line.split(",");
+			bufferedWriter.write(format.format(System.currentTimeMillis()) + ",");
+			for (int i=0; i<array.length; i++)
+				bufferedWriter.write(array[i] + ",");
+			bufferedWriter.newLine();
+			bufferedWriter.flush();
+			
+			// Parameter 세팅
+			mode = Integer.parseInt(array[0]);
+			instability = Float.parseFloat(array[1]);
+			sensitivity = Float.parseFloat(array[2]);
+			delta = Integer.parseInt(array[3]);
+			centerLineWidth = Float.parseFloat(array[4]);
+			targetLineWidth = Float.parseFloat(array[5]);
+			referenceLineWidth = Float.parseFloat(array[6]);
+			centerLinePosition[mode] += screenSize/2;
+			centerLineLength[(mode+1)%2] = screenSize;
+			targetLineLength[(mode+1)%2] = (int)(screenSize/2*Float.parseFloat(array[7]));
+			referenceLineLength[(mode+1)%2] = (int)(screenSize/2*Float.parseFloat(array[8]));
+			upperReferenceLinePosition[0] += (int)(screenSize/2*Float.parseFloat(array[9]));
+			upperReferenceLinePosition[1] += (int)(screenSize/2*Float.parseFloat(array[10]));
+			dash[0] = Float.parseFloat(array[11]);
+			dash[1] = Float.parseFloat(array[12]);
+			if (mode == 1) {
+				lowerReferenceLinePosition[0] += (int)(screenSize/2*Float.parseFloat(array[9]));
+				lowerReferenceLinePosition[1] += (screenSize - (int)(screenSize/2*Float.parseFloat(array[10])));
 			}
+			else {
+				lowerReferenceLinePosition[0] += (screenSize - (int)(screenSize/2*Float.parseFloat(array[9])));
+				lowerReferenceLinePosition[1] += (int)(screenSize/2*Float.parseFloat(array[10]));
+			}
+			
+			// 결과 column Header 저장
+			bufferedWriter.newLine();
+			bufferedWriter.write("t" + ",");
+			bufferedWriter.write("y(t) / x(t)" + ",");
+			bufferedWriter.write("device input" + ",");
+			bufferedWriter.write("RMSD" + ",");
+			bufferedWriter.write("limit excess ratio");
+			bufferedWriter.newLine();
+			bufferedWriter.flush();
+			
 			bufferedReader.close();
 		} catch(FileNotFoundException e) {
 			e.printStackTrace();
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		Random random = new Random();
 		int plusminus = (random.nextInt(2) == 0 ? -1 : 1);
 		targetLinePosition[mode] = screenOffset[mode] + screenSize/2 + plusminus*screenSize/100;
@@ -156,19 +190,6 @@ public class CTT extends JFrame {
 		count = 0;
 		outOfBoundCount = 0;
 		meanSquaredDeviation = 0;
-		
-		saveFile = new File("SaveFile.csv");
-		try {
-			if(saveFile.exists() == false) 
-				saveFile.createNewFile();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		try {
-			bufferedWriter = new BufferedWriter(new FileWriter(saveFile, true));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 		
 		timerThread = new TimerThread();
 		timerThread.setStop(false);
@@ -265,17 +286,18 @@ public class CTT extends JFrame {
 		
 		// Draw Center Line
 		g2.setColor(Color.RED);
-		g2.setStroke(new BasicStroke(lineWidth, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1.0f, dash, 0));
+		g2.setStroke(new BasicStroke(centerLineWidth, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1.0f, dash, 0));
 		g2.drawLine(centerLinePosition[0], centerLinePosition[1], centerLinePosition[0]+centerLineLength[0], centerLinePosition[1]+centerLineLength[1]);
 		
 		// Draw Reference Line
 		g2.setColor(Color.BLUE);
-		g2.setStroke(new BasicStroke(lineWidth));
+		g2.setStroke(new BasicStroke(referenceLineWidth));
 		g2.drawLine(upperReferenceLinePosition[0], upperReferenceLinePosition[1], upperReferenceLinePosition[0] + referenceLineLength[0], upperReferenceLinePosition[1] + referenceLineLength[1]);
 		g2.drawLine(lowerReferenceLinePosition[0], lowerReferenceLinePosition[1], lowerReferenceLinePosition[0] + referenceLineLength[0], lowerReferenceLinePosition[1] + referenceLineLength[1]);
 		
 		// Draw Target Line
 		g2.setColor(Color.BLACK);
+		g2.setStroke(new BasicStroke(targetLineWidth));
 		g2.drawLine((int)targetLinePosition[0], (int)targetLinePosition[1], (int)targetLinePosition[0] + targetLineLength[0], (int)targetLinePosition[1] + targetLineLength[1]);
 		
 		g.drawImage(img, 0, 0, null);
@@ -338,7 +360,9 @@ public class CTT extends JFrame {
 				if (timerTime - timerStartTime >= delta) {
 					count++;
 					targetLinePosition[mode] += targetLineVelocity[mode] * delta + sensitivity * deviceInput;
-					if (targetLinePosition[mode] <= screenOffset[mode]) {
+					if ((int)targetLinePosition[mode] == 0)
+						targetLinePosition[mode] = 0.1f;
+					else if (targetLinePosition[mode] <= screenOffset[mode]) {
 						targetLinePosition[mode] = screenOffset[mode];
 						outOfBoundCount++;
 					}
