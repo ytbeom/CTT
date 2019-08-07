@@ -1,7 +1,6 @@
 package CTT;
 
 import java.awt.BasicStroke;
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
@@ -9,6 +8,8 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
@@ -26,15 +27,17 @@ import java.util.Random;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-//import net.java.games.input.Component;
-//import net.java.games.input.Controller;
-//import net.java.games.input.ControllerEnvironment;
-
+import net.java.games.input.Component.Identifier;
+import net.java.games.input.Controller;
+import net.java.games.input.ControllerEnvironment;
 
 public class CTT extends JFrame {
 	private static final long serialVersionUID = 1L;
@@ -66,9 +69,14 @@ public class CTT extends JFrame {
 	private Image img;
 	private Graphics img_g;
 	
-	//private Controller targetController;
-	//private Component[] components;
-	//private ControllerListenerThread controllerListenerThread;
+	private boolean isControllerUsed = false;
+	private Controller targetController;
+	private Identifier targetComponentIdentifier;
+	private float UpOrLeftLowerBound;
+	private float UpOrLeftUpperBound;
+	private float DownOrRightLowerBound;
+	private float DownOrRightUpperBound;
+	private ControllerListenerThread controllerListenerThread;
 	
 	private TimerThread timerThread;
 	private long timerStartTime;
@@ -196,27 +204,41 @@ public class CTT extends JFrame {
 		timerStartTime = System.currentTimeMillis();
 		timerThread.start();
 
-		/*
-		Controller[] controllers = ControllerEnvironment.getDefaultEnvironment().getControllers();
-		
-		for(Controller controller : controllers) {
-			if (controller.getType() == Controller.Type.GAMEPAD)
-				targetController = controller;
+		if (isControllerUsed) {
+			controllerListenerThread = new ControllerListenerThread();
+			controllerListenerThread.setStop(false);
+			controllerListenerThread.start();
 		}
-		components = targetController.getComponents();
-		
-		controllerListenerThread = new ControllerListenerThread();
-		*/
 	}
 	
 	class SettingDialog extends JDialog {
 		private static final long serialVersionUID = 1L;
 		
 		private int width = 500;
-		private int height = 150;
+		private int height = 230;
+		
+		private JPanel firstRowPanel = new JPanel();
 		private JLabel participantNameLabel = new JLabel("Participant Name: ", JLabel.CENTER);
 		private JTextField participantNameTextField = new JTextField(10);
+		
+		private JPanel secondRowPanel = new JPanel();
+		private JCheckBox controllerCheckBox = new JCheckBox("", false);
+		private JComboBox<String> controllerCombo;
+		private Controller[] controllers = {};
+		private JLabel componentIndexLabel = new JLabel("Index of Input Component: ", JLabel.CENTER);
+		private JTextField componentIndexTextField = new JTextField(3);
+		
+		private JPanel thirdRowPanel = new JPanel();
+		private JLabel UpOrLeftLabel = new JLabel("UP/LEFT: ", JLabel.CENTER);
+		private JTextField UpOrLeftLowerBoundTextField = new JTextField(3);
+		private JLabel UpOrLeftWabveLabel = new JLabel(" ~ ", JLabel.CENTER);
+		private JTextField UpOrLeftUpperBoundTextField = new JTextField(3);
+		private JLabel DownOrRightLabel = new JLabel("DOWN/RIGHT: ", JLabel.CENTER);
+		private JTextField DownOrRightLowerBoundTextField = new JTextField(3);
+		private JLabel DownOrRightWabveLabel = new JLabel(" ~ ", JLabel.CENTER);
+		private JTextField DownOrRightUpperBoundTextField = new JTextField(3);
 		private JButton okButton = new JButton("OK");
+		
 		private URL lineImageURL = SettingDialog.class.getClassLoader().getResource("Line.png");
 		private ImageIcon lineImageIcon = new ImageIcon(lineImageURL);
 		private Image lineImage = lineImageIcon.getImage().getScaledInstance(width-40, 15, java.awt.Image.SCALE_SMOOTH);
@@ -225,20 +247,59 @@ public class CTT extends JFrame {
 		private ImageIcon logoImageIcon = new ImageIcon(logoImageURL);
 		private Image logoImage = logoImageIcon.getImage().getScaledInstance(width/2, width/2*logoImageIcon.getIconHeight()/logoImageIcon.getIconWidth(), java.awt.Image.SCALE_SMOOTH);
 		private JLabel logoImageBox = new JLabel(new ImageIcon(logoImage));
-		
+
 		public SettingDialog(JFrame frame) {
-			super(frame, "SuRT Setting Dialog", true);
+			super(frame, "CTT Setting Dialog", true);
 			setLayout(new FlowLayout());
 			setSize(width, height);
 			setLocation((CTT.super.getWidth()-width)/2, (CTT.super.getHeight()-height)/2);
 			this.setFocusable(true);
 			
-			add(participantNameLabel, BorderLayout.CENTER);
-			add(participantNameTextField);
-			add(okButton);
+			firstRowPanel.setLayout(new FlowLayout());
+			firstRowPanel.add(participantNameLabel);
+			firstRowPanel.add(participantNameTextField);
+			
+			String[] controllerName = {};
+			controllers = ControllerEnvironment.getDefaultEnvironment().getControllers();
+			controllerName = new String[controllers.length];		
+			for (int i = 0; i<controllerName.length; i++) {
+				controllerName[i] = controllers[i].getName();
+			}
+			controllerCombo = new JComboBox<String>(controllerName);
+			controllerCombo.setEnabled(false);
+
+			secondRowPanel.setLayout(new FlowLayout());
+			secondRowPanel.add(controllerCheckBox);
+			secondRowPanel.add(controllerCombo);
+			secondRowPanel.add(componentIndexLabel);
+			secondRowPanel.add(componentIndexTextField);
+			
+			controllerCheckBox.addItemListener(new ItemListener() {
+				public void itemStateChanged(ItemEvent e) {
+					if (e.getStateChange() == 1)
+						controllerCombo.setEnabled(true);
+					else
+						controllerCombo.setEnabled(false);
+				}
+			});
+			
+			thirdRowPanel.setLayout(new FlowLayout());
+			thirdRowPanel.add(UpOrLeftLabel);
+			thirdRowPanel.add(UpOrLeftLowerBoundTextField);
+			thirdRowPanel.add(UpOrLeftWabveLabel);
+			thirdRowPanel.add(UpOrLeftUpperBoundTextField);
+			thirdRowPanel.add(DownOrRightLabel);
+			thirdRowPanel.add(DownOrRightLowerBoundTextField);
+			thirdRowPanel.add(DownOrRightWabveLabel);
+			thirdRowPanel.add(DownOrRightUpperBoundTextField);
+			thirdRowPanel.add(okButton);
+
+			add(firstRowPanel, "North");
+			add(secondRowPanel, "North");
+			add(thirdRowPanel, "North");
 			add(lineImageBox);
 			add(logoImageBox);
-			
+
 			okButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
 					SaveDialogResult();
@@ -267,6 +328,15 @@ public class CTT extends JFrame {
 			if (participantName.equals(""))
 				participantName = "NONAME";
 			
+			if (controllerCheckBox.isSelected()) {
+				isControllerUsed = true;
+				UpOrLeftLowerBound = Float.parseFloat(UpOrLeftLowerBoundTextField.getText());
+				UpOrLeftUpperBound = Float.parseFloat(UpOrLeftUpperBoundTextField.getText());
+				DownOrRightLowerBound = Float.parseFloat(DownOrRightLowerBoundTextField.getText());
+				DownOrRightUpperBound = Float.parseFloat(DownOrRightUpperBoundTextField.getText());
+				targetController = controllers[controllerCombo.getSelectedIndex()];
+				targetComponentIdentifier = controllers[controllerCombo.getSelectedIndex()].getComponents()[Integer.parseInt(componentIndexTextField.getText())].getIdentifier();				
+			}
 			this.setVisible(false);
 		}
 	}
@@ -326,6 +396,8 @@ public class CTT extends JFrame {
 			}
 			else if (e.getKeyCode() == 27) {
 				timerThread.setStop(true);
+				if (isControllerUsed)
+					controllerListenerThread.setStop(true);
 				try {
 					bufferedWriter.close();
 				} catch (IOException e1) {
@@ -388,22 +460,30 @@ public class CTT extends JFrame {
 		}
 	}
 	
-	/*
 	class ControllerListenerThread extends Thread {
+		private boolean stop;
+		
+		public void setStop(boolean stop) {
+			this.stop = stop;
+		}
+		
 		public void run() {
-			while (true) {
+			while (!stop) {
 				try {
-					Thread.sleep(40);
+					Thread.sleep(20);
 				} catch (Exception e) {}
 				targetController.poll();
-				for (Component component : components) {
-					System.out.print(component.getPollData()+", ");
-				}
-				System.out.println();
+				
+				float polledData = targetController.getComponent(targetComponentIdentifier).getPollData();
+				if (polledData >= UpOrLeftLowerBound && polledData <= UpOrLeftUpperBound)
+					deviceInput = -1;
+				else if (polledData >= DownOrRightLowerBound && polledData <= DownOrRightUpperBound)
+					deviceInput = 1;
+				else
+					deviceInput = 0;
 			}
 		}
 	}
-	*/
 	
 	public static void main(String[] args) {
 		@SuppressWarnings("unused")
