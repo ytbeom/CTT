@@ -2,6 +2,7 @@ package CTT;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -219,7 +220,8 @@ public class CTT extends JFrame {
 		
 		private JPanel firstRowPanel = new JPanel();
 		private JLabel participantNameLabel = new JLabel("Participant Name: ", JLabel.CENTER);
-		private JTextField participantNameTextField = new JTextField(10);
+		//private JTextField participantNameTextField = new JTextField(10);
+		private JTextField participantNameTextField = new JTextField();
 		
 		private JPanel secondRowPanel = new JPanel();
 		private JCheckBox controllerCheckBox = new JCheckBox("", false);
@@ -257,6 +259,7 @@ public class CTT extends JFrame {
 			
 			firstRowPanel.setLayout(new FlowLayout());
 			firstRowPanel.add(participantNameLabel);
+			participantNameTextField.setPreferredSize(new Dimension(300, 25));
 			firstRowPanel.add(participantNameTextField);
 			
 			String[] controllerName = {};
@@ -366,7 +369,10 @@ public class CTT extends JFrame {
 		g2.drawLine(lowerReferenceLinePosition[0], lowerReferenceLinePosition[1], lowerReferenceLinePosition[0] + referenceLineLength[0], lowerReferenceLinePosition[1] + referenceLineLength[1]);
 		
 		// Draw Target Line
-		g2.setColor(Color.BLACK);
+		if (targetLinePosition[mode] > lowerReferenceLinePosition[mode] || targetLinePosition[mode] < upperReferenceLinePosition[mode])
+			g2.setColor(Color.RED);
+		else
+			g2.setColor(Color.BLACK);
 		g2.setStroke(new BasicStroke(targetLineWidth));
 		g2.drawLine((int)targetLinePosition[0], (int)targetLinePosition[1], (int)targetLinePosition[0] + targetLineLength[0], (int)targetLinePosition[1] + targetLineLength[1]);
 		
@@ -415,7 +421,14 @@ public class CTT extends JFrame {
 
 		@Override
 		public void keyReleased(KeyEvent e) {
-			deviceInput = 0;
+			// up & down
+			if (mode == 1 && (e.getKeyCode() == 38 || e.getKeyCode() == 40)) {
+				deviceInput = 0;
+			}
+			// right & left
+			else if (mode == 0 && (e.getKeyCode() == 39 || e.getKeyCode() == 37)) {
+				deviceInput = 0;
+			}
 		}
 	}
 	
