@@ -1,0 +1,3 @@
+Manifest-Version: 1.0
+Main-Class: CTT
+Class-Path: jinput-2.0.9.jar

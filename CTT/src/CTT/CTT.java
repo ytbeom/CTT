@@ -172,6 +172,13 @@ public class CTT extends JFrame {
 				lowerReferenceLinePosition[0] += (screenSize - (int)(screenSize/2*Float.parseFloat(array[9])));
 				lowerReferenceLinePosition[1] += (int)(screenSize/2*Float.parseFloat(array[10]));
 			}
+			if (isControllerUsed) {
+				targetComponentIdentifier = targetController.getComponents()[Integer.parseInt(array[13])].getIdentifier();
+				UpOrLeftLowerBound = Float.parseFloat(array[14]);
+				UpOrLeftUpperBound = Float.parseFloat(array[15]);
+				DownOrRightLowerBound = Float.parseFloat(array[16]);
+				DownOrRightUpperBound = Float.parseFloat(array[17]);
+			}
 			
 			// 결과 column Header 저장
 			bufferedWriter.newLine();
@@ -216,7 +223,7 @@ public class CTT extends JFrame {
 		private static final long serialVersionUID = 1L;
 		
 		private int width = 500;
-		private int height = 230;
+		private int height = 200;
 		
 		private JPanel firstRowPanel = new JPanel();
 		private JLabel participantNameLabel = new JLabel("Participant Name: ", JLabel.CENTER);
@@ -270,12 +277,14 @@ public class CTT extends JFrame {
 			}
 			controllerCombo = new JComboBox<String>(controllerName);
 			controllerCombo.setEnabled(false);
+			controllerCombo.setPreferredSize(new Dimension(350, 25));
 
 			secondRowPanel.setLayout(new FlowLayout());
 			secondRowPanel.add(controllerCheckBox);
 			secondRowPanel.add(controllerCombo);
-			secondRowPanel.add(componentIndexLabel);
-			secondRowPanel.add(componentIndexTextField);
+			//secondRowPanel.add(componentIndexLabel);
+			//secondRowPanel.add(componentIndexTextField);
+			secondRowPanel.add(okButton);
 			
 			controllerCheckBox.addItemListener(new ItemListener() {
 				public void itemStateChanged(ItemEvent e) {
@@ -286,6 +295,7 @@ public class CTT extends JFrame {
 				}
 			});
 			
+			/*
 			thirdRowPanel.setLayout(new FlowLayout());
 			thirdRowPanel.add(UpOrLeftLabel);
 			thirdRowPanel.add(UpOrLeftLowerBoundTextField);
@@ -296,10 +306,11 @@ public class CTT extends JFrame {
 			thirdRowPanel.add(DownOrRightWabveLabel);
 			thirdRowPanel.add(DownOrRightUpperBoundTextField);
 			thirdRowPanel.add(okButton);
-
+			*/
+			
 			add(firstRowPanel, "North");
 			add(secondRowPanel, "North");
-			add(thirdRowPanel, "North");
+			//add(thirdRowPanel, "North");
 			add(lineImageBox);
 			add(logoImageBox);
 
@@ -333,12 +344,12 @@ public class CTT extends JFrame {
 			
 			if (controllerCheckBox.isSelected()) {
 				isControllerUsed = true;
-				UpOrLeftLowerBound = Float.parseFloat(UpOrLeftLowerBoundTextField.getText());
-				UpOrLeftUpperBound = Float.parseFloat(UpOrLeftUpperBoundTextField.getText());
-				DownOrRightLowerBound = Float.parseFloat(DownOrRightLowerBoundTextField.getText());
-				DownOrRightUpperBound = Float.parseFloat(DownOrRightUpperBoundTextField.getText());
+				//UpOrLeftLowerBound = Float.parseFloat(UpOrLeftLowerBoundTextField.getText());
+				//UpOrLeftUpperBound = Float.parseFloat(UpOrLeftUpperBoundTextField.getText());
+				//DownOrRightLowerBound = Float.parseFloat(DownOrRightLowerBoundTextField.getText());
+				//DownOrRightUpperBound = Float.parseFloat(DownOrRightUpperBoundTextField.getText());
 				targetController = controllers[controllerCombo.getSelectedIndex()];
-				targetComponentIdentifier = controllers[controllerCombo.getSelectedIndex()].getComponents()[Integer.parseInt(componentIndexTextField.getText())].getIdentifier();				
+				//targetComponentIdentifier = controllers[controllerCombo.getSelectedIndex()].getComponents()[Integer.parseInt(componentIndexTextField.getText())].getIdentifier();				
 			}
 			this.setVisible(false);
 		}
