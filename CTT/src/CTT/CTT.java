@@ -35,6 +35,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.WindowConstants;
 
 import net.java.games.input.Component.Identifier;
 import net.java.games.input.Controller;
@@ -73,10 +74,10 @@ public class CTT extends JFrame {
 	private boolean isControllerUsed = false;
 	private Controller targetController;
 	private Identifier targetComponentIdentifier;
-	private float UpOrLeftLowerBound;
-	private float UpOrLeftUpperBound;
-	private float DownOrRightLowerBound;
-	private float DownOrRightUpperBound;
+	private float upOrLeftLowerBound;
+	private float upOrLeftUpperBound;
+	private float downOrRightLowerBound;
+	private float downOrRightUpperBound;
 	private ControllerListenerThread controllerListenerThread;
 	
 	private TimerThread timerThread;
@@ -89,6 +90,10 @@ public class CTT extends JFrame {
 	private int outOfBoundCount;
 	private double meanSquaredDeviation;
 	
+	private long experimentTime;
+	private long experimentStartTime;
+	private long pauseStartTime;
+	private long pausedTime;
 	
 	public CTT(String inputFileName) {
 		super("Life Enhancing Technology Lab. - Critical Tracking Task");
@@ -174,10 +179,10 @@ public class CTT extends JFrame {
 			}
 			if (isControllerUsed) {
 				targetComponentIdentifier = targetController.getComponents()[Integer.parseInt(array[13])].getIdentifier();
-				UpOrLeftLowerBound = Float.parseFloat(array[14]);
-				UpOrLeftUpperBound = Float.parseFloat(array[15]);
-				DownOrRightLowerBound = Float.parseFloat(array[16]);
-				DownOrRightUpperBound = Float.parseFloat(array[17]);
+				upOrLeftLowerBound = Float.parseFloat(array[14]);
+				upOrLeftUpperBound = Float.parseFloat(array[15]);
+				downOrRightLowerBound = Float.parseFloat(array[16]);
+				downOrRightUpperBound = Float.parseFloat(array[17]);
 			}
 			
 			// 결과 column Header 저장
@@ -206,12 +211,14 @@ public class CTT extends JFrame {
 		count = 0;
 		outOfBoundCount = 0;
 		meanSquaredDeviation = 0;
+		pausedTime = 0;
 		
 		timerThread = new TimerThread();
 		timerThread.setStop(false);
 		timerStartTime = System.currentTimeMillis();
 		timerThread.start();
-
+		experimentStartTime = System.currentTimeMillis();
+		
 		if (isControllerUsed) {
 			controllerListenerThread = new ControllerListenerThread();
 			controllerListenerThread.setStop(false);
@@ -222,30 +229,23 @@ public class CTT extends JFrame {
 	class SettingDialog extends JDialog {
 		private static final long serialVersionUID = 1L;
 		
-		private int width = 500;
-		private int height = 200;
+		private int width = 600;
+		private int height = 230;
 		
 		private JPanel firstRowPanel = new JPanel();
-		private JLabel participantNameLabel = new JLabel("Participant Name: ", JLabel.CENTER);
-		//private JTextField participantNameTextField = new JTextField(10);
+		private JLabel participantNameLabel = new JLabel("Participant Name: ", JLabel.LEFT);
 		private JTextField participantNameTextField = new JTextField();
+		private JLabel experimentTimeLabel = new JLabel("Experiment Time: ", JLabel.LEFT);
+		private JTextField experimentTimeTextField = new JTextField();
 		
 		private JPanel secondRowPanel = new JPanel();
+		private JLabel controllerInputLabel = new JLabel("Controller Input", JLabel.LEFT);
 		private JCheckBox controllerCheckBox = new JCheckBox("", false);
-		private JComboBox<String> controllerCombo;
-		private Controller[] controllers = {};
-		private JLabel componentIndexLabel = new JLabel("Index of Input Component: ", JLabel.CENTER);
-		private JTextField componentIndexTextField = new JTextField(3);
+		private JLabel emptyLabel = new JLabel("", JLabel.LEFT);
 		
 		private JPanel thirdRowPanel = new JPanel();
-		private JLabel UpOrLeftLabel = new JLabel("UP/LEFT: ", JLabel.CENTER);
-		private JTextField UpOrLeftLowerBoundTextField = new JTextField(3);
-		private JLabel UpOrLeftWabveLabel = new JLabel(" ~ ", JLabel.CENTER);
-		private JTextField UpOrLeftUpperBoundTextField = new JTextField(3);
-		private JLabel DownOrRightLabel = new JLabel("DOWN/RIGHT: ", JLabel.CENTER);
-		private JTextField DownOrRightLowerBoundTextField = new JTextField(3);
-		private JLabel DownOrRightWabveLabel = new JLabel(" ~ ", JLabel.CENTER);
-		private JTextField DownOrRightUpperBoundTextField = new JTextField(3);
+		private JComboBox<String> controllerCombo;
+		private Controller[] controllers = {};
 		private JButton okButton = new JButton("OK");
 		
 		private URL lineImageURL = SettingDialog.class.getClassLoader().getResource("Line.png");
@@ -263,11 +263,27 @@ public class CTT extends JFrame {
 			setSize(width, height);
 			setLocation((CTT.super.getWidth()-width)/2, (CTT.super.getHeight()-height)/2);
 			this.setFocusable(true);
+			this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 			
 			firstRowPanel.setLayout(new FlowLayout());
+			firstRowPanel.setPreferredSize(new Dimension(600, 30));
+			participantNameLabel.setPreferredSize(new Dimension(120, 20));
 			firstRowPanel.add(participantNameLabel);
-			participantNameTextField.setPreferredSize(new Dimension(300, 25));
+			participantNameTextField.setPreferredSize(new Dimension(160, 20));
 			firstRowPanel.add(participantNameTextField);
+			experimentTimeLabel.setPreferredSize(new Dimension(120, 20));
+			firstRowPanel.add(experimentTimeLabel);
+			experimentTimeTextField.setPreferredSize(new Dimension(160, 20));
+			firstRowPanel.add(experimentTimeTextField);
+			
+			secondRowPanel.setLayout(new FlowLayout());
+			secondRowPanel.setPreferredSize(new Dimension(600, 30));
+			controllerInputLabel.setPreferredSize(new Dimension(120, 20));
+			secondRowPanel.add(controllerInputLabel);
+			controllerCheckBox.setPreferredSize(new Dimension(20, 20));
+			secondRowPanel.add(controllerCheckBox);
+			emptyLabel.setPreferredSize(new Dimension(425, 20));
+			secondRowPanel.add(emptyLabel);
 			
 			String[] controllerName = {};
 			controllers = ControllerEnvironment.getDefaultEnvironment().getControllers();
@@ -277,14 +293,13 @@ public class CTT extends JFrame {
 			}
 			controllerCombo = new JComboBox<String>(controllerName);
 			controllerCombo.setEnabled(false);
-			controllerCombo.setPreferredSize(new Dimension(350, 25));
 
-			secondRowPanel.setLayout(new FlowLayout());
-			secondRowPanel.add(controllerCheckBox);
-			secondRowPanel.add(controllerCombo);
-			//secondRowPanel.add(componentIndexLabel);
-			//secondRowPanel.add(componentIndexTextField);
-			secondRowPanel.add(okButton);
+			thirdRowPanel.setLayout(new FlowLayout());
+			thirdRowPanel.setPreferredSize(new Dimension(600, 30));
+			controllerCombo.setPreferredSize(new Dimension(510, 20));
+			thirdRowPanel.add(controllerCombo);
+			okButton.setPreferredSize(new Dimension(60, 20));
+			thirdRowPanel.add(okButton);
 			
 			controllerCheckBox.addItemListener(new ItemListener() {
 				public void itemStateChanged(ItemEvent e) {
@@ -295,22 +310,9 @@ public class CTT extends JFrame {
 				}
 			});
 			
-			/*
-			thirdRowPanel.setLayout(new FlowLayout());
-			thirdRowPanel.add(UpOrLeftLabel);
-			thirdRowPanel.add(UpOrLeftLowerBoundTextField);
-			thirdRowPanel.add(UpOrLeftWabveLabel);
-			thirdRowPanel.add(UpOrLeftUpperBoundTextField);
-			thirdRowPanel.add(DownOrRightLabel);
-			thirdRowPanel.add(DownOrRightLowerBoundTextField);
-			thirdRowPanel.add(DownOrRightWabveLabel);
-			thirdRowPanel.add(DownOrRightUpperBoundTextField);
-			thirdRowPanel.add(okButton);
-			*/
-			
 			add(firstRowPanel, "North");
 			add(secondRowPanel, "North");
-			//add(thirdRowPanel, "North");
+			add(thirdRowPanel, "North");
 			add(lineImageBox);
 			add(logoImageBox);
 
@@ -342,17 +344,129 @@ public class CTT extends JFrame {
 			if (participantName.equals(""))
 				participantName = "NONAME";
 			
+			if (experimentTimeTextField.getText() == "")
+				experimentTime = Long.MAX_VALUE;
+			else
+				experimentTime = Long.parseLong(experimentTimeTextField.getText());
+			
 			if (controllerCheckBox.isSelected()) {
 				isControllerUsed = true;
-				//UpOrLeftLowerBound = Float.parseFloat(UpOrLeftLowerBoundTextField.getText());
-				//UpOrLeftUpperBound = Float.parseFloat(UpOrLeftUpperBoundTextField.getText());
-				//DownOrRightLowerBound = Float.parseFloat(DownOrRightLowerBoundTextField.getText());
-				//DownOrRightUpperBound = Float.parseFloat(DownOrRightUpperBoundTextField.getText());
-				targetController = controllers[controllerCombo.getSelectedIndex()];
-				//targetComponentIdentifier = controllers[controllerCombo.getSelectedIndex()].getComponents()[Integer.parseInt(componentIndexTextField.getText())].getIdentifier();				
+				targetController = controllers[controllerCombo.getSelectedIndex()];		
 			}
 			this.setVisible(false);
 		}
+	}
+	
+	class PauseDialog extends JDialog {
+		private static final long serialVersionUID = 1L;
+		
+		private int width = 250;
+		private int height = 70;
+		
+		private JButton continueButton = new JButton("Continue");
+		private JButton quitButton = new JButton("Quit");
+		
+		public PauseDialog(JFrame frame) {
+			super(frame, "", true);
+			setLayout(new FlowLayout());
+			setSize(width, height);
+			setLocation((CTT.super.getWidth()-width)/2, (CTT.super.getHeight()-height)/2);
+			this.setFocusable(true);
+			this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+			
+			continueButton.setPreferredSize(new Dimension(100, 20));
+			quitButton.setPreferredSize(new Dimension(100, 20));
+			add(continueButton);
+			add(quitButton);
+			
+			continueButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					pausedTime = System.currentTimeMillis() - pauseStartTime;
+					System.out.println(pausedTime);
+					timerThread = new TimerThread();
+					timerThread.setStop(false);
+					timerStartTime = System.currentTimeMillis();
+					timerThread.start();
+					dispose();
+				}
+			});
+			
+			quitButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					Quit();
+				}
+			});
+			
+			KeyListener escListener = new KeyListener() {
+				public void keyPressed(KeyEvent e) {
+					if (e.getKeyCode() == 27) {
+						pausedTime += System.currentTimeMillis() - pauseStartTime;
+						System.out.println(pausedTime);
+						timerThread = new TimerThread();
+						timerThread.setStop(false);
+						timerStartTime = System.currentTimeMillis();
+						timerThread.start();
+						setVisible(false);
+					}
+				}
+				
+				@Override
+				public void keyTyped(KeyEvent e) {}
+
+				@Override
+				public void keyReleased(KeyEvent e) {}
+			};
+			
+			this.addKeyListener(escListener);
+		}
+	}
+	
+	class QuitDialog extends JDialog {
+		private static final long serialVersionUID = 1L;
+		
+		private int width = 250;
+		private int height = 70;
+		
+		private JButton newTrialButton = new JButton("New Trial");
+		private JButton quitButton = new JButton("Quit");
+		
+		public QuitDialog(JFrame frame) {
+			super(frame, "", true);
+			setLayout(new FlowLayout());
+			setSize(width, height);
+			setLocation((CTT.super.getWidth()-width)/2, (CTT.super.getHeight()-height)/2);
+			this.setFocusable(true);
+			this.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+			
+			newTrialButton.setPreferredSize(new Dimension(100, 20));
+			quitButton.setPreferredSize(new Dimension(100, 20));
+			add(newTrialButton);
+			add(quitButton);
+			
+			newTrialButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					dispose();
+					@SuppressWarnings("unused")
+					CTT ctt = new CTT("CTTsetting.csv");
+				}
+			});
+			
+			quitButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					Quit();
+				}
+			});
+		}
+	}
+	
+	public void OpenPauseDialog() {
+		PauseDialog pauseDialog = new PauseDialog(this);
+		pauseDialog.setVisible(true);
+	}
+	
+	public void OpenQuitDialog() {
+		QuitDialog quitDialog = new QuitDialog(this);
+		quitDialog.setVisible(true);
 	}
 	
 	public void paint(Graphics g) {
@@ -413,15 +527,8 @@ public class CTT extends JFrame {
 			}
 			else if (e.getKeyCode() == 27) {
 				timerThread.setStop(true);
-				if (isControllerUsed)
-					controllerListenerThread.setStop(true);
-				try {
-					bufferedWriter.close();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				System.exit(0);
+				pauseStartTime = System.currentTimeMillis();
+				OpenPauseDialog();
 			}
 		}
 		
@@ -441,6 +548,22 @@ public class CTT extends JFrame {
 				deviceInput = 0;
 			}
 		}
+	}
+	
+	public void Quit() {
+		// Close BufferedWriter
+		try {
+			bufferedWriter.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// Stop controllerListener
+		if (isControllerUsed)
+			controllerListenerThread.setStop(true);
+		
+		System.exit(0);
 	}
 	
 	class TimerThread extends Thread {
@@ -480,6 +603,10 @@ public class CTT extends JFrame {
 					}
 					timerStartTime = System.currentTimeMillis();
 				}
+				if (timerTime - experimentStartTime - pausedTime >= experimentTime) {
+					this.setStop(true);
+					OpenQuitDialog();
+				}
 			}
 		}
 	}
@@ -499,9 +626,9 @@ public class CTT extends JFrame {
 				targetController.poll();
 				
 				float polledData = targetController.getComponent(targetComponentIdentifier).getPollData();
-				if (polledData >= UpOrLeftLowerBound && polledData <= UpOrLeftUpperBound)
+				if (polledData >= upOrLeftLowerBound && polledData <= upOrLeftUpperBound)
 					deviceInput = -1;
-				else if (polledData >= DownOrRightLowerBound && polledData <= DownOrRightUpperBound)
+				else if (polledData >= downOrRightLowerBound && polledData <= downOrRightUpperBound)
 					deviceInput = 1;
 				else
 					deviceInput = 0;
