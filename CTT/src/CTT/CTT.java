@@ -344,7 +344,7 @@ public class CTT extends JFrame {
 			if (participantName.equals(""))
 				participantName = "NONAME";
 			
-			if (experimentTimeTextField.getText() == "")
+			if (experimentTimeTextField.getText().equals(""))
 				experimentTime = Long.MAX_VALUE;
 			else
 				experimentTime = Long.parseLong(experimentTimeTextField.getText());
