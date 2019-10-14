@@ -1,0 +1,14 @@
+#Fat Jar Configuration File
+#Mon Oct 14 22:03:46 KST 2019
+onejar.license.required=true
+manifest.classpath=
+manifest.removesigners=true
+onejar.checkbox=false
+jarname=C\:\\Users\\ytbeo\\Desktop\\CTT_ver7.0.jar
+manifest.mergeall=true
+manifest.mainclass=
+manifest.file=<createnew>
+jarname.isextern=true
+onejar.expand=
+excludes=
+includes=
