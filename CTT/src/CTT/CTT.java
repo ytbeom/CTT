@@ -289,7 +289,7 @@ public class CTT extends JFrame {
 			controllers = ControllerEnvironment.getDefaultEnvironment().getControllers();
 			controllerName = new String[controllers.length];		
 			for (int i = 0; i<controllerName.length; i++) {
-				controllerName[i] = controllers[i].getName();
+				controllerName[i] = controllers[i].getName() + " / " + controllers[i].getType();
 			}
 			controllerCombo = new JComboBox<String>(controllerName);
 			controllerCombo.setEnabled(false);
